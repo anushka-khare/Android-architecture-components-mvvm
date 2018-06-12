@@ -1,11 +1,15 @@
 package retrofit;
 
 import android.arch.lifecycle.MutableLiveData;
+import android.arch.persistence.room.Room;
+import android.arch.persistence.room.RoomDatabase;
 
 import com.anushka.androidarchiechture.GlobalApplication;
 
 import java.util.ArrayList;
+import java.util.List;
 
+import database.UserDatabase;
 import pojo.Datum;
 import pojo.User;
 import retrofit2.Call;
@@ -18,20 +22,18 @@ import retrofit2.Response;
 public class Repository {
 
     private APIInterface apiInterface;
-    private ArrayList<Datum> featuredApps;
-    private MutableLiveData<ArrayList<Datum>> listLiveData;
+    private UserDatabase roomDatabase;
 
-    public Repository(MutableLiveData<ArrayList<Datum>> listLiveData)
+    public Repository(UserDatabase roomDatabase)
     {
-        this.listLiveData=listLiveData;
+        this.roomDatabase=roomDatabase;
         apiInterface= GlobalApplication.getRetrofitClient().create(APIInterface.class);
     }
 
-    public ArrayList<Datum> getFeaturedAppsViaAPI()
+    public void getFeaturedAppsViaAPI()
     {
 
-//       new GetDataAsync().execute();
-        Call<User> call=apiInterface.getData(/*"6","android"*/);
+        Call<User> call=apiInterface.getData();
 
         call.enqueue(new retrofit2.Callback<User>() {
             @Override
@@ -39,11 +41,12 @@ public class Repository {
 
                 System.out.println("API response "+response);
                 User appData=response.body();
-//                    Promotions promotions=appData.getPromotions();
+                ArrayList<Datum> featuredApps=new ArrayList<>();
                 if(appData!=null)
                 featuredApps=appData.getData();
 
-                listLiveData.setValue(featuredApps);
+                // inserting data to roomDatabase got through api callback
+                roomDatabase.getUserDao().insertAllDatum(featuredApps);
 
             }
             @Override
@@ -54,7 +57,6 @@ public class Repository {
             }
         });
 
-        return featuredApps;
     }
 
 
